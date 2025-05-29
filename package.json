@@ -1,0 +1,22 @@
+{
+  "name": "solomonagent",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "openai": "^5.0.1",
+    "playwright": "^1.52.0"
+  },
+  "bin": {
+    "solomonagent": "index.ts"
+  },
+  "scripts": {
+    "postinstall": "bunx playwright install chromium-headless-shell"
+  }
+}
