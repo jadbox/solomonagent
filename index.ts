@@ -13,6 +13,7 @@ import {
   spinner,
 } from "@clack/prompts";
 import color from "picocolors";
+
 // import Parser from "@postlight/parser";
 // import  @mozilla/readability
 // import Readability from "@mozilla/readability"; // Readability is not used directly in the final plan for node finding
@@ -20,8 +21,8 @@ import color from "picocolors";
 // Define the PageAction interface
 interface PageAction {
   name: string;
-  type: "form" | "link" | "other";
-  description: string; // e.g., "search:form"
+  type: "form" | "link" | "other" | string;
+  // description: string; // e.g., "search:form"
   node?: any; // Changed to any as per user feedback
 }
 
@@ -182,6 +183,8 @@ async function getPageContentAndTitle(url: string) {
 }
 
 import OpenAI from "openai";
+import { url } from "inspector";
+import { get } from "http";
 
 // Configure OpenAI SDK for Gemini (assuming a compatible proxy endpoint)
 // IMPORTANT: You may need to change the baseURL to your specific Gemini proxy endpoint.
@@ -190,13 +193,30 @@ const openai = new OpenAI({
   baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/", // Replace with your actual Gemini-compatible endpoint
 });
 
-async function summarizePage(content: string) {
+async function summarizePage(content: string, originalUrl: string) {
+  const pathBase = new URL(originalUrl).pathname;
   const completion = await openai.chat.completions.create({
     messages: [
       {
         role: "system",
-        content:
-          "You are a helpful assistant that summarizes web page content concisely to 2 sentances, focusing on key page data and user actions. Return as plain text the critical page information to the user and a CSV list of 1 - 10 top key actions (ranked from most common to least) in double brackets, like [[search:form, next_page:link, about:link]]. Focus on key details (account status, balance, top 10 feed, or search form action, etc).",
+        content: `You are a helpful assistant that summarizes web page content concisely to 2 sentances, 
+          focusing on key page data and user actions. 
+          Return as plain text the critical page information to the user as a JSON in schema:
+          {
+            "content": "Page summary text",
+            "actions": [
+              {
+                "name": "action label",
+                "type": "form|link|button",
+                "url": "<URL if applicable>"
+              }
+            ],
+          }
+
+          Actions are ordered 1 - 10 top key actions 
+          (ranked from most common to least).
+          
+          Focus on key details (account status, balance, top 10 feed, or search form action, etc).`,
       },
       {
         role: "user",
@@ -206,33 +226,36 @@ async function summarizePage(content: string) {
     model: "gemini-2.5-flash-preview-05-20", // Using the requested Gemini model
   });
 
-  const rawActionsString = completion.choices[0]?.message?.content
-    ?.split("[[")[1]
-    ?.split("]]")[0];
-  const actionStrings = rawActionsString ? rawActionsString.split(",") : [];
+  const response = completion.choices[0]?.message?.content || "";
 
-  const _content = completion.choices[0]?.message?.content
-    ?.split("[[")[0]
-    ?.trim();
+  //GET lAsT BRACKET IN RESPONSE
+  let get_json = `{${response.substring(
+    response.indexOf("{") + 1,
+    response.lastIndexOf("}")
+  )}
+    }`;
+
+  // console.log(response);
+  console.log(";;;;", get_json);
+  const _content = JSON.parse(get_json) || "";
+  const actions: { name: string; type: string; url?: string }[] =
+    _content.actions || [];
 
   const $ = cheerio.load(content); // Load HTML content with Cheerio
 
-  const processedActions: PageAction[] = actionStrings.map((actionStr) => {
-    const parts = actionStr.trim().split(":");
-    const actionName = parts[0]?.trim() || "unnamed_action";
-    const actionTypeHint = parts[1]?.trim().toLowerCase() || "other";
-
-    let type: PageAction["type"] = "other";
-    if (actionTypeHint === "form") {
-      type = "form";
-    } else if (actionTypeHint === "link") {
-      type = "link";
-    }
+  const processedActions: PageAction[] = actions.map((action) => {
+    const actionName = action.name || "unnamed_action";
+    const actionType = action.type; // || "other";
 
     let foundNode: any | undefined = undefined; // Changed to any as per user feedback
+    let url: string | undefined = action.url || undefined;
 
+    // if URL is relative, prefix with pathBase
+    if (url && !url.startsWith("http")) {
+      url = new URL(url, originalUrl).href; // Convert relative URL to absolute
+    }
     // Attempt to find the node - this is a simplified heuristic
-    if (type === "form") {
+    if (actionType === "form") {
       // Try to find forms that might be related to the actionName
       // This is a basic attempt; more sophisticated matching might be needed
       const forms = $("form");
@@ -243,34 +266,26 @@ async function summarizePage(content: string) {
           return false; // Stop after finding the first match
         }
       });
-      if (!foundNode && forms.length > 0 && actionStrings.length === 1) {
+      if (!foundNode && forms.length > 0) {
         // If only one action and it's a form, and only one form on page
         foundNode = forms.first();
       }
-    } else if (type === "link") {
+    } else if (actionType === "link") {
       // Try to find links that might be related to the actionName
-      const links = $("a");
-      links.each((i, el) => {
-        const linkText = $(el).text().toLowerCase().trim();
-        const linkHref = $(el).attr("href")?.toLowerCase() || "";
-        if (linkText.includes(actionName) || linkHref.includes(actionName)) {
-          foundNode = $(el);
-          return false; // Stop after finding the first match
-        }
-      });
     }
 
     return {
       name: actionName,
-      type: type,
-      description: actionStr.trim(),
+      type: actionType,
       node: foundNode,
+      url: url,
     };
   });
 
   return {
     content: _content || "No summary available.",
     actions: processedActions,
+    description: _content.description || "No description available.",
     html: content, // Keep original HTML if needed elsewhere
   };
 }
@@ -333,7 +348,7 @@ async function main() {
     console.log(`Page title: ${title}`);
 
     console.log("Summarizing page content and identifying actions...");
-    const summary = await summarizePage(content); // summary now contains PageAction[]
+    const summary = await summarizePage(content, url); // summary now contains PageAction[]
 
     console.log("\n--- Page Summary ---");
     console.log(summary.content); // Display text summary
@@ -346,8 +361,8 @@ async function main() {
 
     // Prepare options for @clack/prompts select
     const actionOptionsForClack = summary.actions.map((action) => ({
-      value: action.description, // Use description as value, assuming it's unique enough
-      label: action.description,
+      value: action.name, // Use description as value, assuming it's unique enough
+      label: action.name,
       hint: action.type,
     }));
 
@@ -364,7 +379,7 @@ async function main() {
 
     // Find the original PageAction based on the selected description
     const selectedAction = summary.actions.find(
-      (action) => action.description === selectedActionDescription
+      (action) => action.name === selectedActionDescription
     );
 
     if (!selectedAction) {
@@ -375,7 +390,7 @@ async function main() {
       return;
     }
 
-    console.log(`\nSelected action: ${color.cyan(selectedAction.description)}`);
+    console.log(`\nSelected action: ${color.cyan(selectedAction.name)}`);
 
     if (selectedAction.type === "form") {
       let formPromptMessage = `Enter input for the form "${selectedAction.name}":`;
