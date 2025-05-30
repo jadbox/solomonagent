@@ -10,6 +10,10 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "@postlight/parser": "^2.2.3",
+    "bun-promptx": "^0.2.0",
+    "cheerio": "^1.0.0",
     "openai": "^5.0.1",
     "playwright": "^1.52.0"
   },
