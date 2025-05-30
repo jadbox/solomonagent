@@ -7,9 +7,10 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@clack/prompts": "^0.11.0",
     "@mozilla/readability": "^0.6.0",
     "@postlight/parser": "^2.2.3",
     "bun-promptx": "^0.2.0",
@@ -21,6 +22,7 @@
     "solomonagent": "index.ts"
   },
   "scripts": {
-    "postinstall": "bunx playwright install chromium-headless-shell"
+    "postinstall": "bunx playwright install chromium-headless-shell",
+    "start": "node --experimental-strip-types index.ts"
   }
 }

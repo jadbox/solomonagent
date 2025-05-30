@@ -1,15 +1,1 @@
-# solomonagent
-
-To install dependencies:
-
-```bash
-bun install
-```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.2.15. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+This CLI allows the user to pull the most important website page data from their chrome profile (like account balances) and allows the user to take actions like following common links or submitting a search query.

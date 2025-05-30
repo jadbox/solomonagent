@@ -1,12 +1,29 @@
-#!/usr/bin/env bun
-import { chromium } from "playwright";
+#!/usr/bin/env node --experimental-strip-types
+import { chromium, type BrowserContext } from "playwright"; // Import Playwright for browser automation
 import { homedir } from "os";
 import { existsSync } from "fs";
 import * as cheerio from "cheerio";
+import {
+  intro,
+  outro,
+  select,
+  text,
+  isCancel,
+  cancel,
+  spinner,
+} from "@clack/prompts";
+import color from "picocolors";
 // import Parser from "@postlight/parser";
 // import  @mozilla/readability
-import Readability from "@mozilla/readability";
-import { createSelection, createPrompt } from "bun-promptx";
+// import Readability from "@mozilla/readability"; // Readability is not used directly in the final plan for node finding
+
+// Define the PageAction interface
+interface PageAction {
+  name: string;
+  type: "form" | "link" | "other";
+  description: string; // e.g., "search:form"
+  node?: any; // Changed to any as per user feedback
+}
 
 // Common Chrome profile paths
 const PROFILE_PATHS = {
@@ -26,56 +43,141 @@ const PROFILE_PATHS = {
   )}/AppData/Local/Google/Chrome Beta/User Data`,
 };
 
-async function getPageContentAndTitle(
-  url: string
-): Promise<{ title: string; content: string }> {
-  const profilePath = detectChromeProfile();
-  if (!profilePath) throw new Error("Chrome profile not found");
+let browser: BrowserContext | undefined = undefined; // Will become Browser for launch()
 
-  const browser = await chromium.launchPersistentContext(profilePath, {
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    javaScriptEnabled: true, // Enable JavaScript for the context
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36", // Set user agent for the context
-    viewport: { width: 1280, height: 720 }, // Set viewport for the context
-  });
+async function getPageContentAndTitle(url: string) {
+  console.log("[getPageContentAndTitle] Starting function...");
+  const profilePath = detectChromeProfile();
+  if (!profilePath) {
+    console.error("[getPageContentAndTitle] Chrome profile not found");
+    throw new Error("Chrome profile not found");
+  }
+  // console.log(`[getPageContentAndTitle] Using profile path: ${profilePath}`); // Temporarily bypass profile for testing
 
   try {
-    const page = await browser.newPage(); // newPage() takes no arguments with launchPersistentContext
-    await page.route("**.jpg", (route) => route.abort());
-    await page.route("**.jpeg", (route) => route.abort());
-    await page.route("**.png", (route) => route.abort());
-    await page.route("**.gif", (route) => route.abort());
-    await page.route("**.webp", (route) => route.abort());
-    // Wait until the network is idle, which is often better for JS-heavy pages
-    await page.goto(url, { waitUntil: "networkidle", timeout: 60000 }); // Increased timeout for networkidle
+    console.log(
+      "[getPageContentAndTitle] Launching new browser instance (non-persistent).."
+    );
+
+    const regularBrowser = await chromium.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-first-run",
+        "--disable-default-apps",
+        "--disable-features=VizDisplayCompositor",
+        "--disable-extensions",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+      ],
+      timeout: 5000, // 5 seconds
+    });
+
+    console.log(
+      "[getPageContentAndTitle] New browser instance launched successfully."
+    );
+    //
+    // return { title: "", content: "" }; // Return empty title and content for now
+    // IGNORE BELOW FOR NOW while debugging
+    // Create a new context from the launched browser
+    browser = await regularBrowser.newContext({
+      javaScriptEnabled: true,
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36",
+      viewport: { width: 1280, height: 720 },
+    });
+    console.log(
+      "[getPageContentAndTitle] New browser instance and context launched."
+    );
+
+    if (!browser) {
+      console.error(
+        "[getPageContentAndTitle] Browser context not initialized before creating page."
+      );
+      throw new Error("Browser context not initialized");
+    }
+    console.log("[getPageContentAndTitle] Creating new page...");
+    const page = await browser.newPage(); // newPage comes from the context
+    console.log("[getPageContentAndTitle] New page created.");
+
+    console.log(`[getPageContentAndTitle] Navigating to: ${url}`);
+    const navigationTimeout = 12000;
+    console.log(
+      `[getPageContentAndTitle] Setting navigation timeout to ${navigationTimeout}ms`
+    );
+    const r = await page.goto(url, {
+      timeout: navigationTimeout,
+      waitUntil: "domcontentloaded",
+    });
     const title = await page.title();
-    const content = await page.content(); // Get the full page content
-    // Use Postlight Parser to extract structured content
+    const content = await page.content();
+
+    console.log(
+      "[getPageContentAndTitle] Page loaded successfully. Status:",
+      r?.status(),
+      "OK:",
+      r?.ok()
+    );
+
     const dom = cheerio.load(content);
-    if (!dom) throw new Error("Failed to load page content");
+    if (!dom) {
+      console.error(
+        "[getPageContentAndTitle] Failed to load page content with Cheerio"
+      );
+      throw new Error("Failed to load page content with Cheerio");
+    }
 
-    // create a Document object for Readability
+    const htmlContent = dom.html();
+    if (!htmlContent) {
+      console.warn(
+        "[getPageContentAndTitle] Cheerio dom.html() returned empty or null."
+      );
+    }
 
-    // console.log("dom._root", dom._root);
-    // const passed = new Readability.Readability(dom._root).parse();
-    // if (!passed) throw new Error("Failed to parse page content");
-    // if (!passed.content) throw new Error("No content found in the page");
-
-    // console.log(
-    //   `Page content fetched successfully for: ${url}`,
-    //   passed.content
-    // );
-
-    console.log(`Page title: ${title}`);
+    console.log(`[getPageContentAndTitle] Page title: ${title}`);
 
     return {
       title,
-      content: dom.html() || "",
+      content: htmlContent || "",
     };
+  } catch (error) {
+    console.error(
+      "[getPageContentAndTitle] Error fetching page content:",
+      error
+    );
+    if (browser) {
+      console.log(
+        "[getPageContentAndTitle] Attempting to close browser due to error..."
+      );
+      await browser.close();
+    }
+    throw error;
   } finally {
-    await browser.close();
+    if (browser) {
+      console.log(
+        "[getPageContentAndTitle] Closing browser context in finally block..."
+      );
+      await browser.close(); // Closes the context
+      // If we launched a regular browser, we need to close it too.
+      // The 'regularBrowser' instance would need to be accessible here.
+      // For simplicity in this step, we'll rely on the script ending to kill the browser process
+      // or handle it more robustly if this approach works.
+      // A better way:
+      // const browserInstance = (browser as any).browser(); // Get parent browser if context
+      // if (browserInstance) await browserInstance.close();
+
+      console.log(
+        "[getPageContentAndTitle] Browser context closed in finally block."
+      );
+    } else {
+      console.log(
+        "[getPageContentAndTitle] Browser context was not initialized or already closed, skipping close in finally block."
+      );
+    }
   }
 }
 
@@ -104,23 +206,104 @@ async function summarizePage(content: string) {
     model: "gemini-2.5-flash-preview-05-20", // Using the requested Gemini model
   });
 
-  const actions = completion.choices[0]?.message?.content
+  const rawActionsString = completion.choices[0]?.message?.content
     ?.split("[[")[1]
-    ?.split("]]")[0]
-    ?.split(",");
+    ?.split("]]")[0];
+  const actionStrings = rawActionsString ? rawActionsString.split(",") : [];
 
   const _content = completion.choices[0]?.message?.content
     ?.split("[[")[0]
     ?.trim();
 
+  const $ = cheerio.load(content); // Load HTML content with Cheerio
+
+  const processedActions: PageAction[] = actionStrings.map((actionStr) => {
+    const parts = actionStr.trim().split(":");
+    const actionName = parts[0]?.trim() || "unnamed_action";
+    const actionTypeHint = parts[1]?.trim().toLowerCase() || "other";
+
+    let type: PageAction["type"] = "other";
+    if (actionTypeHint === "form") {
+      type = "form";
+    } else if (actionTypeHint === "link") {
+      type = "link";
+    }
+
+    let foundNode: any | undefined = undefined; // Changed to any as per user feedback
+
+    // Attempt to find the node - this is a simplified heuristic
+    if (type === "form") {
+      // Try to find forms that might be related to the actionName
+      // This is a basic attempt; more sophisticated matching might be needed
+      const forms = $("form");
+      forms.each((i, el) => {
+        const formHtml = $(el).html()?.toLowerCase() || "";
+        if (formHtml.includes(actionName)) {
+          foundNode = $(el);
+          return false; // Stop after finding the first match
+        }
+      });
+      if (!foundNode && forms.length > 0 && actionStrings.length === 1) {
+        // If only one action and it's a form, and only one form on page
+        foundNode = forms.first();
+      }
+    } else if (type === "link") {
+      // Try to find links that might be related to the actionName
+      const links = $("a");
+      links.each((i, el) => {
+        const linkText = $(el).text().toLowerCase().trim();
+        const linkHref = $(el).attr("href")?.toLowerCase() || "";
+        if (linkText.includes(actionName) || linkHref.includes(actionName)) {
+          foundNode = $(el);
+          return false; // Stop after finding the first match
+        }
+      });
+    }
+
+    return {
+      name: actionName,
+      type: type,
+      description: actionStr.trim(),
+      node: foundNode,
+    };
+  });
+
   return {
     content: _content || "No summary available.",
-    actions: actions || [],
-    html: content,
+    actions: processedActions,
+    html: content, // Keep original HTML if needed elsewhere
   };
 }
 
 async function main() {
+  console.log(); // Add a blank line for aesthetics before intro
+  intro(color.inverse(" Web Page Interactor "));
+
+  // Graceful shutdown
+  const cleanup = async () => {
+    console.log("\nCleaning up before exit...");
+    if (browser) {
+      console.log("Closing browser context...");
+      try {
+        await browser.close();
+        console.log("Browser context closed.");
+      } catch (e) {
+        console.error("Error closing browser context during cleanup:", e);
+      }
+    }
+    process.exit(0); // Ensure the process exits after cleanup
+  };
+
+  process.on("SIGINT", async () => {
+    console.log("Caught SIGINT. Cleaning up...");
+    await cleanup();
+  });
+
+  process.on("SIGTERM", async () => {
+    console.log("Caught SIGTERM. Cleaning up...");
+    await cleanup();
+  });
+
   if (!process.env.GEMINI_API_KEY) {
     console.error("Please set the GEMINI_API_KEY environment variable.");
     process.exit(1);
@@ -149,14 +332,116 @@ async function main() {
     const { title, content } = await getPageContentAndTitle(url);
     console.log(`Page title: ${title}`);
 
-    console.log("Summarizing page content...");
-    const summary = await summarizePage(content);
+    console.log("Summarizing page content and identifying actions...");
+    const summary = await summarizePage(content); // summary now contains PageAction[]
+
     console.log("\n--- Page Summary ---");
-    console.log(summary);
+    console.log(summary.content); // Display text summary
     console.log("--------------------");
+
+    if (!summary.actions || summary.actions.length === 0) {
+      console.log("No actions identified by the AI. Exiting.");
+      process.exit(0);
+    }
+
+    // Prepare options for @clack/prompts select
+    const actionOptionsForClack = summary.actions.map((action) => ({
+      value: action.description, // Use description as value, assuming it's unique enough
+      label: action.description,
+      hint: action.type,
+    }));
+
+    const selectedActionDescription = await select({
+      message: "Select a page action to perform:",
+      options: actionOptionsForClack,
+    });
+
+    if (isCancel(selectedActionDescription)) {
+      cancel("Operation cancelled. Exiting.");
+      await cleanup(); // Ensure cleanup is called before exiting
+      return; // Exit main function
+    }
+
+    // Find the original PageAction based on the selected description
+    const selectedAction = summary.actions.find(
+      (action) => action.description === selectedActionDescription
+    );
+
+    if (!selectedAction) {
+      console.error(
+        "Critical Error: Could not find the original selected action. Exiting."
+      );
+      await cleanup();
+      return;
+    }
+
+    console.log(`\nSelected action: ${color.cyan(selectedAction.description)}`);
+
+    if (selectedAction.type === "form") {
+      let formPromptMessage = `Enter input for the form "${selectedAction.name}":`;
+      let placeholderText = "Type your input here...";
+      if (selectedAction.node) {
+        const inputs = selectedAction.node
+          .find('input[type="text"], input[type="search"], textarea')
+          .first();
+        const placeholder = inputs.attr("placeholder");
+        const inputName = inputs.attr("name");
+        if (placeholder) {
+          formPromptMessage = `Enter ${placeholder}:`;
+          placeholderText = placeholder;
+        } else if (inputName) {
+          formPromptMessage = `Enter value for ${inputName}:`;
+          placeholderText = `Value for ${inputName}`;
+        }
+      }
+
+      const formInput = await text({
+        message: formPromptMessage,
+        placeholder: placeholderText,
+        validate: (value) => {
+          if (!value) return "Please enter a value.";
+        },
+      });
+
+      if (isCancel(formInput)) {
+        cancel("Operation cancelled during form input. Exiting.");
+        await cleanup();
+        return;
+      }
+
+      if (formInput) {
+        // formInput is the string value directly
+        console.log(
+          `Input for "${color.green(selectedAction.name)}": ${color.yellow(
+            formInput
+          )}`
+        );
+      } else {
+        console.log(
+          `No input provided for "${color.green(selectedAction.name)}".`
+        );
+      }
+    }
+
+    outro(color.green("Application finished successfully."));
   } catch (error) {
-    console.error(`Error: ${error instanceof Error ? error.message : error}`);
-    process.exit(1);
+    console.error(
+      color.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    outro(color.red("Application exited with an error."));
+    if (browser) {
+      console.log("Closing browser context due to error in main...");
+      await browser
+        .close()
+        .catch((e) =>
+          console.error(color.red("Error closing browser context on error:"), e)
+        );
+    }
+    // process.exit(1); // Let cleanup handle exit
+  } finally {
+    await cleanup(); // Ensure cleanup runs, even on successful completion if not already exited
   }
 }
 
