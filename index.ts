@@ -23,7 +23,10 @@ interface PageAction {
   name: string;
   type: "form" | "link" | "other" | string;
   // description: string; // e.g., "search:form"
+  url?: string; // Optional URL for the action, if applicable
   node?: any; // Changed to any as per user feedback
+  element_id?: string; // Optional ID of the element if applicable
+  element_attr_name?: string; // Optional attribute name of the element if applicable
 }
 
 // Common Chrome profile paths
@@ -208,7 +211,9 @@ async function summarizePage(content: string, originalUrl: string) {
               {
                 "name": "action label",
                 "type": "form|link|button",
-                "url": "<URL if applicable>"
+                "url": "<URL if applicable>",
+                "element_id": "<ID of the element if applicable>",
+                "element_attr_name": "<Attribute name of the element if applicable>"
               }
             ],
           }
@@ -238,49 +243,33 @@ async function summarizePage(content: string, originalUrl: string) {
   // console.log(response);
   console.log(";;;;", get_json);
   const _content = JSON.parse(get_json) || "";
-  const actions: { name: string; type: string; url?: string }[] =
-    _content.actions || [];
+  const actions = _content.actions as PageAction[];
 
   const $ = cheerio.load(content); // Load HTML content with Cheerio
 
   const processedActions: PageAction[] = actions.map((action) => {
-    const actionName = action.name || "unnamed_action";
-    const actionType = action.type; // || "other";
-
-    let foundNode: any | undefined = undefined; // Changed to any as per user feedback
-    let url: string | undefined = action.url || undefined;
+    let url = action.url;
 
     // if URL is relative, prefix with pathBase
     if (url && !url.startsWith("http")) {
       url = new URL(url, originalUrl).href; // Convert relative URL to absolute
     }
     // Attempt to find the node - this is a simplified heuristic
-    if (actionType === "form") {
-      // Try to find forms that might be related to the actionName
-      // This is a basic attempt; more sophisticated matching might be needed
-      const forms = $("form");
-      forms.each((i, el) => {
-        const formHtml = $(el).html()?.toLowerCase() || "";
-        if (formHtml.includes(actionName)) {
-          foundNode = $(el);
-          return false; // Stop after finding the first match
-        }
-      });
-      if (!foundNode && forms.length > 0) {
-        // If only one action and it's a form, and only one form on page
-        foundNode = forms.first();
-      }
-    } else if (actionType === "link") {
-      // Try to find links that might be related to the actionName
-    }
 
     return {
-      name: actionName,
-      type: actionType,
-      node: foundNode,
+      name: action.name || "Unnamed Action",
+      type: action.type || "other", // Default to 'other' if type is not specified
+      element_id: action.element_id || undefined, // Optional ID of the element if applicable
+      element_attr_name: action.element_attr_name || undefined, // Optional attribute name of the element if applicable
+      // node: foundNode,
       url: url,
     };
   });
+
+  console.log(
+    `[summarizePage] Processed ${processedActions.length} actions from the summary.`,
+    processedActions
+  );
 
   return {
     content: _content || "No summary available.",
@@ -334,109 +323,8 @@ async function main() {
     }
 
     const url = args[0]!;
-
-    // Validate URL format
-    try {
-      new URL(url);
-    } catch {
-      console.error("Invalid URL format. Please provide a valid URL.");
-      process.exit(1);
-    }
-
-    console.log(`Fetching content for: ${url}`);
-    const { title, content } = await getPageContentAndTitle(url);
-    console.log(`Page title: ${title}`);
-
-    console.log("Summarizing page content and identifying actions...");
-    const summary = await summarizePage(content, url); // summary now contains PageAction[]
-
-    console.log("\n--- Page Summary ---");
-    console.log(summary.content); // Display text summary
-    console.log("--------------------");
-
-    if (!summary.actions || summary.actions.length === 0) {
-      console.log("No actions identified by the AI. Exiting.");
-      process.exit(0);
-    }
-
-    // Prepare options for @clack/prompts select
-    const actionOptionsForClack = summary.actions.map((action) => ({
-      value: action.name, // Use description as value, assuming it's unique enough
-      label: action.name,
-      hint: action.type,
-    }));
-
-    const selectedActionDescription = await select({
-      message: "Select a page action to perform:",
-      options: actionOptionsForClack,
-    });
-
-    if (isCancel(selectedActionDescription)) {
-      cancel("Operation cancelled. Exiting.");
-      await cleanup(); // Ensure cleanup is called before exiting
-      return; // Exit main function
-    }
-
-    // Find the original PageAction based on the selected description
-    const selectedAction = summary.actions.find(
-      (action) => action.name === selectedActionDescription
-    );
-
-    if (!selectedAction) {
-      console.error(
-        "Critical Error: Could not find the original selected action. Exiting."
-      );
-      await cleanup();
-      return;
-    }
-
-    console.log(`\nSelected action: ${color.cyan(selectedAction.name)}`);
-
-    if (selectedAction.type === "form") {
-      let formPromptMessage = `Enter input for the form "${selectedAction.name}":`;
-      let placeholderText = "Type your input here...";
-      if (selectedAction.node) {
-        const inputs = selectedAction.node
-          .find('input[type="text"], input[type="search"], textarea')
-          .first();
-        const placeholder = inputs.attr("placeholder");
-        const inputName = inputs.attr("name");
-        if (placeholder) {
-          formPromptMessage = `Enter ${placeholder}:`;
-          placeholderText = placeholder;
-        } else if (inputName) {
-          formPromptMessage = `Enter value for ${inputName}:`;
-          placeholderText = `Value for ${inputName}`;
-        }
-      }
-
-      const formInput = await text({
-        message: formPromptMessage,
-        placeholder: placeholderText,
-        validate: (value) => {
-          if (!value) return "Please enter a value.";
-        },
-      });
-
-      if (isCancel(formInput)) {
-        cancel("Operation cancelled during form input. Exiting.");
-        await cleanup();
-        return;
-      }
-
-      if (formInput) {
-        // formInput is the string value directly
-        console.log(
-          `Input for "${color.green(selectedAction.name)}": ${color.yellow(
-            formInput
-          )}`
-        );
-      } else {
-        console.log(
-          `No input provided for "${color.green(selectedAction.name)}".`
-        );
-      }
-    }
+    await getPage(url); // Call getPage with the provided URL
+    console.log(`Fetching content from URL: ${url}`);
 
     outro(color.green("Application finished successfully."));
   } catch (error) {
@@ -457,6 +345,108 @@ async function main() {
     // process.exit(1); // Let cleanup handle exit
   } finally {
     await cleanup(); // Ensure cleanup runs, even on successful completion if not already exited
+  }
+}
+
+async function getPage(url: string) {
+  // Validate URL format
+  try {
+    new URL(url);
+  } catch {
+    console.error("Invalid URL format. Please provide a valid URL.");
+    process.exit(1);
+  }
+
+  console.log(`Fetching content for: ${url}`);
+  const { title, content } = await getPageContentAndTitle(url);
+  console.log(`Page title: ${title}`);
+
+  console.log("Summarizing page content and identifying actions...");
+  const summary = await summarizePage(content, url); // summary now contains PageAction[]
+
+  console.log("\n--- Page Summary ---");
+  console.log(summary.content); // Display text summary
+  console.log("--------------------");
+
+  if (!summary.actions || summary.actions.length === 0) {
+    console.log("No actions identified by the AI. Exiting.");
+    process.exit(0);
+  }
+
+  // Prepare options for @clack/prompts select
+  const actionOptionsForClack = summary.actions.map((action) => ({
+    value: action.name, // Use description as value, assuming it's unique enough
+    label: action.name,
+    hint: action.type,
+  }));
+
+  const selectedActionDescription = await select({
+    message: "Select a page action to perform:",
+    options: actionOptionsForClack,
+  });
+
+  if (isCancel(selectedActionDescription)) {
+    cancel("Operation cancelled. Exiting.");
+    // await cleanup(); // Ensure cleanup is called before exiting
+    throw new Error("Operation cancelled by user.");
+  }
+
+  // Find the original PageAction based on the selected description
+  const selectedAction = summary.actions.find(
+    (action) => action.name === selectedActionDescription
+  );
+
+  if (!selectedAction) {
+    throw new Error(
+      "Critical Error: Could not find the original selected action. Exiting."
+    );
+  }
+
+  console.log(`\nSelected action: ${color.cyan(selectedAction.name)}`);
+
+  if (selectedAction.type === "form") {
+    let formPromptMessage = `Enter input for the form "${selectedAction.name}":`;
+    let placeholderText = "Type your input here...";
+    if (selectedAction.node) {
+      const inputs = selectedAction.node
+        .find('input[type="text"], input[type="search"], textarea')
+        .first();
+      const placeholder = inputs.attr("placeholder");
+      const inputName = inputs.attr("name");
+      if (placeholder) {
+        formPromptMessage = `Enter ${placeholder}:`;
+        placeholderText = placeholder;
+      } else if (inputName) {
+        formPromptMessage = `Enter value for ${inputName}:`;
+        placeholderText = `Value for ${inputName}`;
+      }
+    }
+
+    const formInput = await text({
+      message: formPromptMessage,
+      placeholder: placeholderText,
+      validate: (value) => {
+        if (!value) return "Please enter a value.";
+      },
+    });
+
+    if (isCancel(formInput)) {
+      cancel("Operation cancelled during form input. Exiting.");
+      throw new Error("Operation cancelled during form input. Exiting.");
+    }
+
+    if (formInput) {
+      // formInput is the string value directly
+      console.log(
+        `Input for "${color.green(selectedAction.name)}": ${color.yellow(
+          formInput
+        )}`
+      );
+    } else {
+      console.log(
+        `No input provided for "${color.green(selectedAction.name)}".`
+      );
+    }
   }
 }
 
