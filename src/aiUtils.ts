@@ -79,15 +79,15 @@ export async function summarizePage(content: string, originalUrl: string) {
     };
   });
 
-  // console.log(
-  //   `[summarizePage] Processed ${processedActions.length} actions from the summary.`,
-  //   processedActions
-  // );
+  console.log(
+    `[summarizePage] Processed ${processedActions.length} actions from the summary.`,
+    _content
+  );
 
   return {
     content: _content || "No summary available.",
     actions: processedActions,
-    description: _content.description || "No description available.",
+    description: _content.content || "No description available.",
     html: content, // Keep original HTML if needed elsewhere
   };
 }

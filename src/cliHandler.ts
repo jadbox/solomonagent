@@ -1,5 +1,5 @@
 // src/cliHandler.ts
-import { select, text, isCancel, cancel } from "@clack/prompts";
+import { select, text, isCancel, cancel, spinner } from "@clack/prompts";
 import color from "picocolors";
 import { getPageContentAndTitle } from "./browserUtils";
 import { summarizePage } from "./aiUtils";
@@ -15,12 +15,17 @@ export async function getPage(url: string) {
   }
 
   console.log(`Fetching content for: ${url}`);
+  const loadingSpinner = spinner();
+  loadingSpinner.start("Loading page content...");
   const { title, content } = await getPageContentAndTitle(url);
-  console.log(`Page title: ${title}`);
+  loadingSpinner.stop("Page content loaded successfully.");
 
-  console.log("Summarizing page content and identifying actions...");
+  // console.log(`Page title: ${title}`);
+
+  // console.log("Summarizing page content and identifying actions...");
+  loadingSpinner.start("Summarizing page...");
   const summary = await summarizePage(content, url); // summary now contains PageAction[]
-
+  loadingSpinner.stop("Page summary completed.");
   // console.log("\n--- Page Summary ---");
   // console.log(summary.actions); // Display text summary
   // console.log("--------------------");

@@ -79,11 +79,9 @@ export async function getPageContentAndTitle(url: string) {
     const page = await browser.newPage();
     console.log("[getPageContentAndTitle] New page created.");
 
-    console.log(`[getPageContentAndTitle] Navigating to: ${url}`);
-    const navigationTimeout = 12000;
-    console.log(
-      `[getPageContentAndTitle] Setting navigation timeout to ${navigationTimeout}ms`
-    );
+    console.log(`Navigating to: ${url}`);
+    const navigationTimeout = 6000;
+
     const r = await page.goto(url, {
       timeout: navigationTimeout,
       waitUntil: "domcontentloaded",
@@ -113,7 +111,7 @@ export async function getPageContentAndTitle(url: string) {
       );
     }
 
-    console.log(`[getPageContentAndTitle] Page title: ${title}`);
+    // console.log(`[getPageContentAndTitle] Page title: ${title}`);
 
     return {
       title,
@@ -133,13 +131,8 @@ export async function getPageContentAndTitle(url: string) {
     throw error;
   } finally {
     if (browser) {
-      console.log(
-        "[getPageContentAndTitle] Closing browser context in finally block..."
-      );
       await browser.close();
-      console.log(
-        "[getPageContentAndTitle] Browser context closed in finally block."
-      );
+      console.log("Page loaded successfully.");
     } else {
       console.log(
         "[getPageContentAndTitle] Browser context was not initialized or already closed, skipping close in finally block."
