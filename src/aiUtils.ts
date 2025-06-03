@@ -39,7 +39,7 @@ export async function summarizePage(content: string, originalUrl: string) {
           }
 
           Actions are ordered 1 - 6 top key actions to take from the CLI (ranked from most common to least).
-          Only links and forms that are actionable should be included. Do not include UX actions like 'close panel'. 
+          Only links and forms that are actionable should be included. Do not include UX actions, i.e. do not add 'close panel' or 'read page'. 
           
           If search result or feed page, include the top 3 results as actions with their URLs and label with the full post or link title.
           
@@ -87,7 +87,7 @@ export async function summarizePage(content: string, originalUrl: string) {
   const _content = JSON.parse(get_json) || "";
   const actionsFromAI = _content.actions as any[]; // Use any[] initially
 
-  const processedActions: PageAction[] = actionsFromAI.map((actionFromAI) => {
+  let processedActions: PageAction[] = actionsFromAI.map((actionFromAI) => {
     // console.log("[summarizePage] Processing AI action:", JSON.stringify(actionFromAI)); // Log each action from AI
     let url = actionFromAI.url;
     let foundNode: any | undefined = undefined;
@@ -124,13 +124,21 @@ export async function summarizePage(content: string, originalUrl: string) {
     return finalAction;
   });
 
+  // push "read" action to beginning of list
+  processedActions.push({
+    name: "Read Full Page",
+    type: "read",
+    url: "",
+  });
+
   // console.log(
   //   `[summarizePage] Processed ${processedActions.length} actions from the summary.`,
   //   processedActions
   // );
 
   return {
-    content: _content || "No summary available.",
+    raw: content,
+    airesponse: _content || "No summary available.",
     actions: processedActions,
     description: _content.content || "No description available.",
     html: content, // Keep original HTML if needed elsewhere

@@ -5,8 +5,13 @@ import { getPageContentAndTitle, closeBrowser } from "./browserUtils";
 import { summarizePage } from "./aiUtils";
 import type { PageAction } from "./types";
 import { fillAndSubmitForm } from "./formHandler";
+import { turndownService } from "./markdownUtils.ts";
 
+// let cache: Record<string, any> = {};
 export async function getPage(url: string) {
+  // Check if the URL is already cached
+  // TODO
+
   // Validate URL format
   try {
     new URL(url);
@@ -70,7 +75,16 @@ export async function getPage(url: string) {
 
   console.log(`\nSelected action: ${color.cyan(selectedAction.name)}`);
 
-  if (selectedAction.type === "form") {
+  if (selectedAction.type === "read") {
+    // contentInBodyTag. "content" is full page text while we only want body.
+    const body: string =
+      content.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || content;
+    const md = await turndownService.turndown(body);
+
+    console.log(color.green(`\nPage content in Markdown format:\n\n${md}\n`));
+    await getPage(url);
+    return;
+  } else if (selectedAction.type === "form") {
     if (!selectedAction.node) {
       console.warn(
         color.yellow(
