@@ -41,6 +41,7 @@ export async function getPageContentAndTitle(url: string) {
       const regularBrowserInstance = await chromium.launch({
         headless: true, // Ensure headless is true for server environments
         args: [
+          "--disable-blink-features=AutomationControlled",
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
@@ -59,6 +60,8 @@ export async function getPageContentAndTitle(url: string) {
         "[getPageContentAndTitle] New browser instance launched successfully."
       );
       browser = await regularBrowserInstance.newContext({
+        locale: "en-US",
+        timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone, // get user's current Tz like "America/New_York"
         javaScriptEnabled: true,
         userAgent:
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
