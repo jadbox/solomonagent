@@ -1,5 +1,5 @@
 // src/browserUtils.ts
-import { chromium, type BrowserContext } from "playwright";
+import { chromium, type BrowserContext, type Page } from "playwright";
 import { homedir } from "os";
 import { existsSync } from "fs";
 import * as cheerio from "cheerio";
@@ -23,65 +23,69 @@ export const PROFILE_PATHS = {
 };
 
 export let browser: BrowserContext | undefined = undefined;
+export let page: Page | undefined = undefined;
 
 export async function getPageContentAndTitle(url: string) {
   console.log("[getPageContentAndTitle] Starting function...");
-  const profilePath = detectChromeProfile();
-  if (!profilePath) {
-    console.error("[getPageContentAndTitle] Chrome profile not found");
-    throw new Error("Chrome profile not found");
-  }
+  // const profilePath = detectChromeProfile(); // Profile path not strictly needed for headless
+  // if (!profilePath) {
+  //   console.error("[getPageContentAndTitle] Chrome profile not found");
+  //   throw new Error("Chrome profile not found");
+  // }
 
   try {
-    console.log(
-      "[getPageContentAndTitle] Launching new browser instance (non-persistent).."
-    );
-
-    const regularBrowser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--no-first-run",
-        "--disable-default-apps",
-        "--disable-features=VizDisplayCompositor",
-        "--disable-extensions",
-        "--disable-background-timer-throttling",
-        "--disable-backgrounding-occluded-windows",
-        "--disable-renderer-backgrounding",
-      ],
-      timeout: 5000, // 5 seconds
-    });
-
-    console.log(
-      "[getPageContentAndTitle] New browser instance launched successfully."
-    );
-
-    browser = await regularBrowser.newContext({
-      javaScriptEnabled: true,
-      userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36",
-      viewport: { width: 1280, height: 720 },
-    });
-    console.log(
-      "[getPageContentAndTitle] New browser instance and context launched."
-    );
-
     if (!browser) {
-      console.error(
-        "[getPageContentAndTitle] Browser context not initialized before creating page."
+      console.log(
+        "[getPageContentAndTitle] Browser not initialized. Launching new browser instance..."
       );
-      throw new Error("Browser context not initialized");
+      const regularBrowserInstance = await chromium.launch({
+        headless: true, // Ensure headless is true for server environments
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--no-first-run",
+          "--disable-default-apps",
+          "--disable-features=VizDisplayCompositor",
+          "--disable-extensions",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+        ],
+        timeout: 10000, // Increased timeout for launch
+      });
+      console.log(
+        "[getPageContentAndTitle] New browser instance launched successfully."
+      );
+      browser = await regularBrowserInstance.newContext({
+        javaScriptEnabled: true,
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36",
+        viewport: { width: 1280, height: 720 },
+      });
+      console.log("[getPageContentAndTitle] New browser context created.");
     }
-    console.log("[getPageContentAndTitle] Creating new page...");
-    const page = await browser.newPage();
-    console.log("[getPageContentAndTitle] New page created.");
 
-    console.log(`Navigating to: ${url}`);
-    const navigationTimeout = 6000;
+    if (!page || page.isClosed()) {
+      if (!browser) {
+        // This should ideally not happen if the above block executed
+        console.error(
+          "[getPageContentAndTitle] Browser context not available to create new page."
+        );
+        throw new Error("Browser context not available to create new page.");
+      }
+      console.log(
+        "[getPageContentAndTitle] Page not initialized or closed. Creating new page..."
+      );
+      page = await browser.newPage();
+      console.log("[getPageContentAndTitle] New page created.");
+    }
 
+    console.log(`[getPageContentAndTitle] Navigating to: ${url}`);
+    const navigationTimeout = 10000; // Increased navigation timeout
+
+    // Use the module-level 'page'
     const r = await page.goto(url, {
       timeout: navigationTimeout,
       waitUntil: "domcontentloaded",
@@ -90,7 +94,7 @@ export async function getPageContentAndTitle(url: string) {
     const content = await page.content();
 
     console.log(
-      "[getPageContentAndTitle] Page loaded successfully. Status:",
+      "[getPageContentAndTitle] Page navigation successful. Status:",
       r?.status(),
       "OK:",
       r?.ok()
@@ -122,22 +126,35 @@ export async function getPageContentAndTitle(url: string) {
       "[getPageContentAndTitle] Error fetching page content:",
       error
     );
-    if (browser) {
-      console.log(
-        "[getPageContentAndTitle] Attempting to close browser due to error..."
-      );
-      await browser.close();
-    }
-    throw error;
+    // Removed browser.close() from here. It will be closed by closeBrowser()
+    // if (browser) {
+    //   console.log(
+    //     "[getPageContentAndTitle] Attempting to close browser due to error..."
+    //   );
+    //   await browser.close();
+    //   browser = undefined;
+    //   page = undefined;
+    // }
+    throw error; // Rethrow error after logging
   } finally {
-    if (browser) {
-      await browser.close();
-      console.log("Page loaded successfully.");
-    } else {
-      console.log(
-        "[getPageContentAndTitle] Browser context was not initialized or already closed, skipping close in finally block."
-      );
-    }
+    // Browser is no longer closed here to keep it alive for subsequent actions.
+    console.log("[getPageContentAndTitle] Page content processing finished.");
+  }
+}
+
+export async function closeBrowser() {
+  if (page && !page.isClosed()) {
+    console.log("[closeBrowser] Closing page...");
+    await page.close();
+    page = undefined;
+  }
+  if (browser) {
+    console.log("[closeBrowser] Closing browser context...");
+    await browser.close();
+    browser = undefined; // Reset browser variable
+    console.log("[closeBrowser] Browser context closed successfully.");
+  } else {
+    console.log("[closeBrowser] Browser already closed or not initialized.");
   }
 }
 

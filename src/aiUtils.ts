@@ -3,6 +3,8 @@ import OpenAI from "openai";
 import * as cheerio from "cheerio";
 import type { PageAction } from "./types"; // Import the PageAction interface
 
+import { findFormNodeInPage } from "./domUtils"; // Import the new utility
+
 // Configure OpenAI SDK for Gemini (assuming a compatible proxy endpoint)
 // IMPORTANT: You may need to change the baseURL to your specific Gemini proxy endpoint.
 const openai = new OpenAI({
@@ -11,6 +13,9 @@ const openai = new OpenAI({
 });
 
 export async function summarizePage(content: string, originalUrl: string) {
+  // It's important that 'content' passed to findFormNodeInPage is the raw HTML, not just body text.
+  // const contentBodyOnly = cheerio.load(content)("body").text().trim(); // This was for the AI prompt only.
+
   // const pathBase = new URL(originalUrl).pathname;
   const completion = await openai.chat.completions.create({
     messages: [
@@ -24,22 +29,35 @@ export async function summarizePage(content: string, originalUrl: string) {
             "actions": [
               {
                 "name": "action label",
-                "type": "form|link|button",
+                "type": "form|link",
                 "url": "<URL if applicable>",
-                "element_id": "<ID of the element if applicable>",
-                "element_attr_name": "<Attribute name of the element if applicable>"
+                "form_id": "<ID of the <form> element itself containing the action, if type is form>",
+                "form_action_value": "<Exact value of the 'action' attribute of the <form> element, if type is form>",
+                "input_selector": "<CSS selector for the primary input/textarea within the form, if type is form>"
               }
             ],
           }
 
-          Actions are ordered 1 - 10 top key actions 
+          Actions are ordered 1 - 4 top key actions to take from the CLI. Only links and forms that are actionable should be included. Do not include UX actions like 'close panel'.
           (ranked from most common to least).
+          For "form" type actions, the 'name' should describe the form's purpose (e.g., "Search Products", "Login").
+          'form_id' should be the ID of the <form> tag itself, if it has one.
+          'form_action_value' MUST be the exact value of the 'action' attribute of the <form> tag.
+          'input_selector' MUST be a precise CSS selector for the main text input or textarea field within that form (e.g., 'textarea[name=\"q\"]', '.search-input').
+          Prioritize providing 'form_id' or 'form_action_value' for the form, and 'input_selector' for the input.
           
           Focus on key details (account status, balance, top 10 feed, or search form action, etc).`,
       },
       {
         role: "user",
-        content: `Please summarize the following web page content:\n\n${content}`,
+        content: `Please summarize the following web page content:\n\n${(() => {
+          const $ = cheerio.load(content);
+          let bodyText = $("body").text().trim();
+          // $("script, style, noscript, meta").remove();
+          bodyText = bodyText.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ""); // Remove script tags
+          bodyText = bodyText.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ""); // Remove style tags
+          return bodyText;
+        })()}`, // Use body text for AI prompt, after removing script and style tags
       },
     ],
     model: "gemini-2.5-flash-preview-05-20", // Using the requested Gemini model
@@ -56,33 +74,49 @@ export async function summarizePage(content: string, originalUrl: string) {
 
   // console.log(";;;;", get_json);
   const _content = JSON.parse(get_json) || "";
-  const actions = _content.actions as PageAction[];
+  const actionsFromAI = _content.actions as any[]; // Use any[] initially
 
-  // const $ = cheerio.load(content); // Load HTML content with Cheerio
-
-  const processedActions: PageAction[] = actions.map((action) => {
-    let url = action.url;
+  const processedActions: PageAction[] = actionsFromAI.map((actionFromAI) => {
+    // console.log("[summarizePage] Processing AI action:", JSON.stringify(actionFromAI)); // Log each action from AI
+    let url = actionFromAI.url;
+    let foundNode: any | undefined = undefined;
 
     // if URL is relative, prefix with pathBase
     if (url && !url.trim().startsWith("http")) {
       url = new URL(url.trim(), originalUrl).href; // Convert relative URL to absolute
     }
-    // Attempt to find the node - this is a simplified heuristic
 
-    return {
-      name: action.name,
-      type: action.type, // Default to 'other' if type is not specified
-      element_id: action.element_id, // Optional ID of the element if applicable
-      element_attr_name: action.element_attr_name, // Optional attribute name of the element if applicable
-      // node: foundNode,
+    if (actionFromAI.type === "form") {
+      // console.log(`[summarizePage] Action "${actionFromAI.name}" is type form. Calling findFormNodeInPage.`);
+      foundNode = findFormNodeInPage(actionFromAI, content); // Pass the full HTML 'content'
+    } else {
+      // console.log(`[summarizePage] Action "${actionFromAI.name}" is type "${actionFromAI.type}". Skipping findFormNodeInPage.`);
+    }
+
+    const finalAction: PageAction = {
+      name: actionFromAI.name,
+      type: actionFromAI.type,
+      form_id: actionFromAI.form_id, // Use new field name
+      form_action_value: actionFromAI.form_action_value, // Use new field name
+      input_selector: actionFromAI.input_selector, // Use new field name
+      node: foundNode, // Assign the found Cheerio node (which should be the form element)
       url: url,
     };
+    // console.log("[summarizePage] Created PageAction object:", JSON.stringify({
+    //   name: finalAction.name,
+    //   type: finalAction.type,
+    //   form_id: finalAction.form_id,
+    //   form_action_value: finalAction.form_action_value,
+    //   input_selector: finalAction.input_selector,
+    //   nodeId: finalAction.node ? "SET" : "NOT_SET",
+    // }));
+    return finalAction;
   });
 
-  console.log(
-    `[summarizePage] Processed ${processedActions.length} actions from the summary.`,
-    _content
-  );
+  // console.log(
+  //   `[summarizePage] Processed ${processedActions.length} actions from the summary.`,
+  //   processedActions
+  // );
 
   return {
     content: _content || "No summary available.",
