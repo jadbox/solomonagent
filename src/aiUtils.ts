@@ -21,7 +21,7 @@ export async function summarizePage(content: string, originalUrl: string) {
     messages: [
       {
         role: "system",
-        content: `You are a helpful assistant that summarizes web page content concisely to 2 sentances, 
+        content: `You are a helpful assistant that summarizes web page content concisely to one paragraph, 
           focusing on key page data and user actions. 
           Return as plain text the critical page information to the user as a JSON in schema:
           {
@@ -38,7 +38,7 @@ export async function summarizePage(content: string, originalUrl: string) {
             ],
           }
 
-          Actions are ordered 1 - 4 top key actions to take from the CLI. Only links and forms that are actionable should be included. Do not include UX actions like 'close panel'.
+          Actions are ordered 1 - 6 top key actions to take from the CLI. Only links and forms that are actionable should be included. Do not include UX actions like 'close panel'. If search result or feed page, include the top 3 links with titles.
           (ranked from most common to least).
           For "form" type actions, the 'name' should describe the form's purpose (e.g., "Search Products", "Login").
           'form_id' should be the ID of the <form> tag itself, if it has one.
