@@ -38,15 +38,19 @@ export async function summarizePage(content: string, originalUrl: string) {
             ],
           }
 
-          Actions are ordered 1 - 6 top key actions to take from the CLI. Only links and forms that are actionable should be included. Do not include UX actions like 'close panel'. If search result or feed page, include the top 3 links with titles.
-          (ranked from most common to least).
+          Actions are ordered 1 - 6 top key actions to take from the CLI (ranked from most common to least).
+          Only links and forms that are actionable should be included. Do not include UX actions like 'close panel'. 
+          
+          If search result or feed page, include the top 3 results as actions with their URLs and label with the full post or link title.
+          
           For "form" type actions, the 'name' should describe the form's purpose (e.g., "Search Products", "Login").
           'form_id' should be the ID of the <form> tag itself, if it has one.
           'form_action_value' MUST be the exact value of the 'action' attribute of the <form> tag.
           'input_selector' MUST be a precise CSS selector for the main text input or textarea field within that form (e.g., 'textarea[name=\"q\"]', '.search-input').
           Prioritize providing 'form_id' or 'form_action_value' for the form, and 'input_selector' for the input.
           
-          Focus on key details (account status, balance, top 10 feed, or search form action, etc).`,
+          Focus on key details (account status, balance, top 10 feed, or search form action, etc).
+          <think></think>`,
       },
       {
         role: "user",
@@ -67,7 +71,7 @@ export async function summarizePage(content: string, originalUrl: string) {
         })()}`, // Use body text for AI prompt, after removing script and style tags
       },
     ],
-    model: "gemini-2.5-flash-preview-05-20", // Using the requested Gemini model
+    model: "gemini-2.0-flash", // "gemini-2.5-flash-preview-05-20", // Using the requested Gemini model
   });
 
   const response = completion.choices[0]?.message?.content || "";
