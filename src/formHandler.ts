@@ -69,6 +69,10 @@ export async function fillAndSubmitForm(
     // For simplicity and robustness, let's assume directInputSelector is specific enough to be global or Playwright handles context.
     // A safer bet is to locate it within the form context if the selector isn't globally unique.
     // However, the AI is prompted for a selector *within the form*.
+    // console.log(`[fillAndSubmitForm] Attempting to fill input with selector: "${finalInputSelectorForPlaywright}"`);
+    await playwrightFormElement
+      .locator(finalInputSelectorForPlaywright)
+      .waitFor({ state: "visible" });
     await playwrightFormElement
       .locator(finalInputSelectorForPlaywright)
       .fill(userInput);
@@ -92,6 +96,10 @@ export async function fillAndSubmitForm(
       inputTagName
     );
     // console.log(`[fillAndSubmitForm] Using Cheerio-derived input selector: ${finalInputSelectorForPlaywright}`);
+    // console.log(`[fillAndSubmitForm] Attempting to fill input with selector: "${finalInputSelectorForPlaywright}"`);
+    await playwrightFormElement
+      .locator(finalInputSelectorForPlaywright)
+      .waitFor({ state: "visible" });
     await playwrightFormElement
       .locator(finalInputSelectorForPlaywright)
       .fill(userInput);

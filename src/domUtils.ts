@@ -27,14 +27,14 @@ export function findFormNodeInPage(
     input_selector,
   } = actionDetails;
 
-  // console.log(
-  //   `[findFormNodeInPage] ENTERED. actionDetails: ${JSON.stringify(
-  //     actionDetails
-  //   )}`
-  // );
-  // console.log(
-  //   `[findFormNodeInPage] Attempting to find form for action: "${actionName}", form_id: "${form_id}", form_action_value: "${form_action_value}", input_selector: "${input_selector}"`
-  // );
+  console.log(
+    `[findFormNodeInPage] ENTERED. actionDetails: ${JSON.stringify(
+      actionDetails
+    )}`
+  );
+  console.log(
+    `[findFormNodeInPage] Attempting to find form for action: "${actionName}", form_id: "${form_id}", form_action_value: "${form_action_value}", input_selector: "${input_selector}"`
+  );
 
   // Helper to check if element is a form and return it
   const getFormElement = (

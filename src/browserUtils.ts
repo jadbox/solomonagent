@@ -61,7 +61,7 @@ export async function getPageContentAndTitle(url: string) {
       browser = await regularBrowserInstance.newContext({
         javaScriptEnabled: true,
         userAgent:
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
         viewport: { width: 1280, height: 720 },
       });
       console.log("[getPageContentAndTitle] New browser context created.");

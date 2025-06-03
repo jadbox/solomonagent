@@ -56,6 +56,13 @@ export async function summarizePage(content: string, originalUrl: string) {
           // $("script, style, noscript, meta").remove();
           bodyText = bodyText.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ""); // Remove script tags
           bodyText = bodyText.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ""); // Remove style tags
+          // remove all empty lines and empty tags
+          bodyText = bodyText.replace(/^\s*[\r\n]/gm, ""); // Remove empty lines
+          bodyText = bodyText.replace(/<[^>]+>\s*<\/[^>]+>/g, ""); // Remove empty tags
+
+          bodyText = bodyText.replace(/<br\s*\/?>/gi, " "); // Replace <br> tags with a space
+          bodyText = bodyText.replace(/<[^>]+\/>/g, ""); // Remove self-closing tags
+          bodyText = bodyText.replace(/\s+/g, " "); // Replace multiple spaces with a single space
           return bodyText;
         })()}`, // Use body text for AI prompt, after removing script and style tags
       },
