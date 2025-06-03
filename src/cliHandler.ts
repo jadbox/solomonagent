@@ -82,7 +82,8 @@ export async function getPage(url: string) {
     const md = await turndownService.turndown(body);
 
     console.log(color.green(`\nPage content in Markdown format:\n\n${md}\n`));
-    await getPage(url);
+    // await getPage(url);
+    process.exit(0); // Exit after reading content
     return;
   } else if (selectedAction.type === "form") {
     if (!selectedAction.node) {

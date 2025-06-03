@@ -63,9 +63,10 @@ export async function getPageContentAndTitle(url: string) {
         locale: "en-US",
         timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone, // get user's current Tz like "America/New_York"
         javaScriptEnabled: true,
+
         userAgent:
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-        viewport: { width: 1280, height: 720 },
+        viewport: { width: 1480, height: 800 },
       });
       console.log("[getPageContentAndTitle] New browser context created.");
     }
