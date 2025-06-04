@@ -32,7 +32,7 @@ export function getActivePage(): Page | undefined {
 
 export async function getPageContentAndTitle(url: string) {
   console.log("[getPageContentAndTitle] Starting function...");
-  const profilePath = path.join(detectChromeProfile(), ""); // /Default Profile path not strictly needed for headless
+  const profilePath = path.join(detectChromeProfile(), "Default"); // /Default Profile path not strictly needed for headless
   if (!profilePath) {
     console.error("[getPageContentAndTitle] Chrome profile not found");
     throw new Error("Chrome profile not found");
@@ -50,7 +50,7 @@ export async function getPageContentAndTitle(url: string) {
       const regularBrowserInstance = await chromium.launchPersistentContext(
         profilePath,
         {
-          headless: false,
+          headless: true,
           //headless: true, // Ensure headless is true for server environments
           // add profile path to the browser launch options
           javaScriptEnabled: true,
