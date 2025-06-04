@@ -56,7 +56,7 @@ export async function getPageContentAndTitle(url: string) {
           javaScriptEnabled: true,
           locale: "en-US",
           timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone, // get user's current Tz like "America/New_York"
-          channel: "chrome-beta",
+          // channel: "chrome-beta",
           args: [
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
