@@ -26,6 +26,10 @@ export const PROFILE_PATHS = {
 export let browser: BrowserContext | undefined = undefined;
 export let page: Page | undefined = undefined;
 
+export function getActivePage(): Page | undefined {
+  return page;
+}
+
 export async function getPageContentAndTitle(url: string) {
   console.log("[getPageContentAndTitle] Starting function...");
   const profilePath = path.join(detectChromeProfile(), ""); // /Default Profile path not strictly needed for headless
