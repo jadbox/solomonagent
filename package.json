@@ -18,7 +18,7 @@
     "bun-promptx": "^0.2.0",
     "cheerio": "^1.0.0",
     "openai": "^5.0.1",
-    "playwright": "npm:rebrowser-playwright@^1.52.0",
+    "playwright": "^1.52.0",
     "tsx": "^4.19.4",
     "turndown": "^7.2.0",
     "turndown-plugin-gfm": "^1.0.2"

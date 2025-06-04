@@ -3,6 +3,7 @@ import { chromium, type BrowserContext, type Page } from "playwright";
 import { homedir } from "os";
 import { existsSync } from "fs";
 import * as cheerio from "cheerio";
+import path from "path";
 
 // Common Chrome profile paths
 export const PROFILE_PATHS = {
@@ -27,47 +28,62 @@ export let page: Page | undefined = undefined;
 
 export async function getPageContentAndTitle(url: string) {
   console.log("[getPageContentAndTitle] Starting function...");
-  // const profilePath = detectChromeProfile(); // Profile path not strictly needed for headless
-  // if (!profilePath) {
-  //   console.error("[getPageContentAndTitle] Chrome profile not found");
-  //   throw new Error("Chrome profile not found");
-  // }
+  const profilePath = path.join(detectChromeProfile(), ""); // /Default Profile path not strictly needed for headless
+  if (!profilePath) {
+    console.error("[getPageContentAndTitle] Chrome profile not found");
+    throw new Error("Chrome profile not found");
+  } else {
+    console.log(
+      `[getPageContentAndTitle] Using Chrome profile path: ${profilePath}`
+    );
+  }
 
   try {
     if (!browser) {
       console.log(
         "[getPageContentAndTitle] Browser not initialized. Launching new browser instance..."
       );
-      const regularBrowserInstance = await chromium.launch({
-        headless: true, // Ensure headless is true for server environments
-        args: [
-          "--disable-blink-features=AutomationControlled",
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-gpu",
-          "--no-first-run",
-          "--disable-default-apps",
-          "--disable-features=VizDisplayCompositor",
-          "--disable-extensions",
-          "--disable-background-timer-throttling",
-          "--disable-backgrounding-occluded-windows",
-          "--disable-renderer-backgrounding",
-        ],
-        timeout: 10000, // Increased timeout for launch
-      });
+      const regularBrowserInstance = await chromium.launchPersistentContext(
+        profilePath,
+        {
+          headless: false,
+          //headless: true, // Ensure headless is true for server environments
+          // add profile path to the browser launch options
+          javaScriptEnabled: true,
+          locale: "en-US",
+          timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone, // get user's current Tz like "America/New_York"
+          channel: "chrome-beta",
+          args: [
+            "--disable-blink-features=AutomationControlled",
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--no-first-run",
+            "--disable-default-apps",
+            "--disable-features=VizDisplayCompositor",
+            "--disable-extensions",
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-renderer-backgrounding",
+          ],
+          // timeout: 10000, // Increased timeout for launch
+        }
+      );
       console.log(
         "[getPageContentAndTitle] New browser instance launched successfully."
       );
-      browser = await regularBrowserInstance.newContext({
-        locale: "en-US",
-        timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone, // get user's current Tz like "America/New_York"
-        javaScriptEnabled: true,
+      browser = regularBrowserInstance; // Get the browser context from the launched persistent context
 
-        userAgent:
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-        viewport: { width: 1480, height: 800 },
-      });
+      // browser = await regularBrowserInstance.({
+      //   locale: "en-US",
+      //   timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone, // get user's current Tz like "America/New_York"
+      //   javaScriptEnabled: true,
+
+      //   userAgent:
+      //     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+      //   viewport: { width: 1480, height: 800 },
+      // });
       console.log("[getPageContentAndTitle] New browser context created.");
     }
 
@@ -92,7 +108,7 @@ export async function getPageContentAndTitle(url: string) {
     // Use the module-level 'page'
     const r = await page.goto(url, {
       timeout: navigationTimeout,
-      waitUntil: "domcontentloaded",
+      waitUntil: "domcontentloaded", // Wait until the DOM is fully loaded
     });
     const title = await page.title();
     const content = await page.content();
@@ -162,7 +178,7 @@ export async function closeBrowser() {
   }
 }
 
-export function detectChromeProfile(): string | null {
+export function detectChromeProfile(): string {
   switch (process.platform) {
     case "linux":
       if (existsSync(PROFILE_PATHS.wsl)) return PROFILE_PATHS.wsl;
@@ -173,13 +189,21 @@ export function detectChromeProfile(): string | null {
 
       if (existsSync(PROFILE_PATHS.linux)) return PROFILE_PATHS.linux;
       if (existsSync(PROFILE_PATHS.linuxBeta)) return PROFILE_PATHS.linuxBeta;
-      return null;
+      throw new Error(
+        "Linux profile detection is not implemented yet. Please specify a profile path manually."
+      );
+    //return null;
     case "win32":
       if (existsSync(PROFILE_PATHS.windows)) return PROFILE_PATHS.windows;
       if (existsSync(PROFILE_PATHS.windowsBeta))
         return PROFILE_PATHS.windowsBeta;
-      return null;
+      //return null;
+      throw new Error(
+        "Windows profile detection is not implemented yet. Please specify a profile path manually."
+      );
     default:
-      return null;
+      throw new Error(
+        `Unsupported platform: ${process.platform}. Please specify a profile path manually.`
+      );
   }
 }
