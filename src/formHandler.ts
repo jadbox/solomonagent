@@ -51,15 +51,17 @@ export async function fillAndSubmitForm(
     );
   }
 
-  console.log("[fillAndSubmitForm] Attempting to fill and submit form on active page...");
+  // console.log("[fillAndSubmitForm] Attempting to fill and submit form on active page...");
 
   let inputSelectorToUse: string;
 
   if (directInputSelector) {
-    console.log(`[fillAndSubmitForm] Using direct input selector provided: "${directInputSelector}"`);
+    console.log(
+      `[fillAndSubmitForm] Using direct input selector provided: "${directInputSelector}"`
+    );
     inputSelectorToUse = directInputSelector;
   } else {
-    console.log("[fillAndSubmitForm] No direct input selector. Deriving from formCheerioNode.");
+    // console.log("[fillAndSubmitForm] No direct input selector. Deriving from formCheerioNode.");
     // Try to find a suitable input field within the formCheerioNode context
     const inputElementCheerio = formCheerioNode
       .find(
@@ -68,48 +70,73 @@ export async function fillAndSubmitForm(
       .first();
 
     if (inputElementCheerio.length === 0) {
-      console.error("[fillAndSubmitForm] No suitable input field found in the form node using Cheerio.");
+      console.error(
+        "[fillAndSubmitForm] No suitable input field found in the form node using Cheerio."
+      );
       throw new Error("No suitable input field found in the form node.");
     }
     const inputTagName = inputElementCheerio.get(0)?.tagName || "input";
     inputSelectorToUse = getSpecificSelector(inputElementCheerio, inputTagName);
-    console.log(`[fillAndSubmitForm] Derived input selector: "${inputSelectorToUse}"`);
+    console.log(
+      `[fillAndSubmitForm] Derived input selector: "${inputSelectorToUse}"`
+    );
   }
 
-  console.log(`[fillAndSubmitForm] Attempting to fill input "${inputSelectorToUse}" with: "${userInput}"`);
+  console.log(
+    `[fillAndSubmitForm] Attempting to fill input "${inputSelectorToUse}" with: "${userInput}"`
+  );
   await activePage.locator(inputSelectorToUse).fill(userInput);
-  console.log(`[fillAndSubmitForm] Filled input field "${inputSelectorToUse}".`);
+  console.log(
+    `[fillAndSubmitForm] Filled input field "${inputSelectorToUse}".`
+  );
 
   // Attempt to find a submit button within the formCheerioNode context to click
   // Prefer specific submit buttons, then general buttons
   let submitButtonSelector: string | undefined;
-  const submitButtonCheerio = formCheerioNode.find('button[type="submit"], input[type="submit"]').first();
+  const submitButtonCheerio = formCheerioNode
+    .find('button[type="submit"], input[type="submit"]')
+    .first();
 
   if (submitButtonCheerio.length > 0) {
     const submitTagName = submitButtonCheerio.get(0)?.tagName || "button";
-    submitButtonSelector = getSpecificSelector(submitButtonCheerio, submitTagName);
-    console.log(`[fillAndSubmitForm] Found submit button with selector: "${submitButtonSelector}"`);
+    submitButtonSelector = getSpecificSelector(
+      submitButtonCheerio,
+      submitTagName
+    );
+    console.log(
+      `[fillAndSubmitForm] Found submit button with selector: "${submitButtonSelector}"`
+    );
   } else {
     // Fallback: if no explicit submit button, try pressing Enter on the input field
-    console.log("[fillAndSubmitForm] No explicit submit button found. Will attempt to submit by pressing Enter on the input field.");
+    // console.log("[fillAndSubmitForm] No explicit submit button found. Will attempt to submit by pressing Enter on the input field.");
   }
 
   try {
     if (submitButtonSelector) {
-      console.log(`[fillAndSubmitForm] Attempting to click submit button: "${submitButtonSelector}"`);
+      console.log(
+        `[fillAndSubmitForm] Attempting to click submit button: "${submitButtonSelector}"`
+      );
       // It's crucial to await Promise.all if the click triggers navigation.
       await Promise.all([
-        activePage.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 10000 }),
+        activePage.waitForNavigation({
+          waitUntil: "domcontentloaded",
+          timeout: 10000,
+        }),
         activePage.locator(submitButtonSelector).click(),
       ]);
-      console.log("[fillAndSubmitForm] Submit button clicked and navigation likely occurred.");
+      // console.log("[fillAndSubmitForm] Submit button clicked and navigation likely occurred.");
     } else {
-      console.log(`[fillAndSubmitForm] Attempting to submit form by pressing Enter on input: ${inputSelectorToUse}`);
+      console.log(
+        `[fillAndSubmitForm] Attempting to submit form by pressing Enter on input: ${inputSelectorToUse}`
+      );
       await Promise.all([
-        activePage.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 10000 }),
+        activePage.waitForNavigation({
+          waitUntil: "domcontentloaded",
+          timeout: 10000,
+        }),
         activePage.locator(inputSelectorToUse).press("Enter"),
       ]);
-      console.log("[fillAndSubmitForm] Form submission by Enter press and navigation likely occurred.");
+      // console.log("[fillAndSubmitForm] Form submission by Enter press and navigation likely occurred.");
     }
   } catch (e: any) {
     console.warn(
@@ -123,7 +150,9 @@ export async function fillAndSubmitForm(
   const newContent = await activePage.content(); // Get the full HTML content
   const newUrl = activePage.url();
 
-  console.log(`[fillAndSubmitForm] New page state retrieved. Title: "${newTitle}", URL: "${newUrl}"`);
+  console.log(
+    `[fillAndSubmitForm] New page state retrieved. Title: "${newTitle}", URL: "${newUrl}"`
+  );
 
   return {
     title: newTitle,

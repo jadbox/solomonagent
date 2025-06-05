@@ -88,7 +88,7 @@ export async function summarizePage(content: string, originalUrl: string) {
   const actionsFromAI = _content.actions as any[]; // Use any[] initially
 
   let processedActions: PageAction[] = actionsFromAI.map((actionFromAI) => {
-    // console.log("[summarizePage] Processing AI action:", JSON.stringify(actionFromAI)); // Log each action from AI
+    // // console.log("[summarizePage] Processing AI action:", JSON.stringify(actionFromAI)); // Log each action from AI
     let url = actionFromAI.url;
     let foundNode: any | undefined = undefined;
 
@@ -113,7 +113,7 @@ export async function summarizePage(content: string, originalUrl: string) {
       node: foundNode, // Assign the found Cheerio node (which should be the form element)
       url: url,
     };
-    // console.log("[summarizePage] Created PageAction object:", JSON.stringify({
+    // // console.log("[summarizePage] Created PageAction object:", JSON.stringify({
     //   name: finalAction.name,
     //   type: finalAction.type,
     //   form_id: finalAction.form_id,

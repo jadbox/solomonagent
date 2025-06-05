@@ -31,24 +31,24 @@ export function getActivePage(): Page | undefined {
 }
 
 export async function getPageContentAndTitle(url: string) {
-  console.log("[getPageContentAndTitle] Starting function...");
+  // console.log("[getPageContentAndTitle] Starting function...");
   const profilePath = path.join(detectChromeProfile(), "Default"); // /Default Profile path not strictly needed for headless
-  if (!profilePath) {
-    console.error("[getPageContentAndTitle] Chrome profile not found");
-    throw new Error("Chrome profile not found");
-  } else {
-    console.log(
-      `[getPageContentAndTitle] Using Chrome profile path: ${profilePath}`
-    );
-  }
+  // if (!profilePath) {
+  //   console.error("[getPageContentAndTitle] Chrome profile not found");
+  //   throw new Error("Chrome profile not found");
+  // } else {
+  //   console.log(
+  //     `[getPageContentAndTitle] Using Chrome profile path: ${profilePath}`
+  //   );
+  // }
 
   try {
     if (!browser) {
-      console.log(
-        "[getPageContentAndTitle] Browser not initialized. Launching new browser instance..."
-      );
+      // console.log(
+      //   "[getPageContentAndTitle] Browser not initialized. Launching new browser instance..."
+      // );
       const regularBrowserInstance = await chromium.launchPersistentContext(
-        profilePath,
+        "./profile",
         {
           headless: true,
           //headless: true, // Ensure headless is true for server environments
@@ -88,7 +88,7 @@ export async function getPageContentAndTitle(url: string) {
       //     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
       //   viewport: { width: 1480, height: 800 },
       // });
-      console.log("[getPageContentAndTitle] New browser context created.");
+      // console.log("[getPageContentAndTitle] New browser context created.");
     }
 
     if (!page || page.isClosed()) {
@@ -99,14 +99,14 @@ export async function getPageContentAndTitle(url: string) {
         );
         throw new Error("Browser context not available to create new page.");
       }
-      console.log(
-        "[getPageContentAndTitle] Page not initialized or closed. Creating new page..."
-      );
+      // console.log(
+      //   "[getPageContentAndTitle] Page not initialized or closed. Creating new page..."
+      // );
       page = await browser.newPage();
-      console.log("[getPageContentAndTitle] New page created.");
+      // console.log("[getPageContentAndTitle] New page created.");
     }
 
-    console.log(`[getPageContentAndTitle] Navigating to: ${url}`);
+    // console.log(`[getPageContentAndTitle] Navigating to: ${url}`);
     const navigationTimeout = 10000; // Increased navigation timeout
 
     // Use the module-level 'page'
@@ -117,12 +117,12 @@ export async function getPageContentAndTitle(url: string) {
     const title = await page.title();
     const content = await page.content();
 
-    console.log(
-      "[getPageContentAndTitle] Page navigation successful. Status:",
-      r?.status(),
-      "OK:",
-      r?.ok()
-    );
+    // console.log(
+    //   "[getPageContentAndTitle] Page navigation successful. Status:",
+    //   r?.status(),
+    //   "OK:",
+    //   r?.ok()
+    // );
 
     const dom = cheerio.load(content);
     if (!dom) {
@@ -162,23 +162,23 @@ export async function getPageContentAndTitle(url: string) {
     throw error; // Rethrow error after logging
   } finally {
     // Browser is no longer closed here to keep it alive for subsequent actions.
-    console.log("[getPageContentAndTitle] Page content processing finished.");
+    // console.log("[getPageContentAndTitle] Page content processing finished.");
   }
 }
 
 export async function closeBrowser() {
   if (page && !page.isClosed()) {
-    console.log("[closeBrowser] Closing page...");
+    // console.log("[closeBrowser] Closing page...");
     await page.close();
     page = undefined;
   }
   if (browser) {
-    console.log("[closeBrowser] Closing browser context...");
+    // console.log("[closeBrowser] Closing browser context...");
     await browser.close();
     browser = undefined; // Reset browser variable
-    console.log("[closeBrowser] Browser context closed successfully.");
+    // console.log("[closeBrowser] Browser context closed successfully.");
   } else {
-    console.log("[closeBrowser] Browser already closed or not initialized.");
+    // console.log("[closeBrowser] Browser already closed or not initialized.");
   }
 }
 
