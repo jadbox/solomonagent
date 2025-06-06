@@ -27,7 +27,7 @@
     "solomonagent": "index.ts"
   },
   "scripts": {
-    "postinstall2": "npx playwright install chromium",
+    "postinstall": "npx playwright install chromium",
     "postinstall_old": "bunx playwright install chromium-headless-shell",
     "start": "node --experimental-strip-types --import=tsx index.ts"
   }
