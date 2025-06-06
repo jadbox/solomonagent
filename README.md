@@ -1,6 +1,14 @@
-# Web Page Interactor
+# Solomon's Agent: summerize and interact with the web
 
-This project provides a command-line interface (CLI) tool to interact with web pages. It fetches page content, summarizes it using an AI model, and allows users to select and interact with identified actions (like forms or links) on the page.
+This project provides a command-line interface (CLI) tool to quickly interact with web from the CLI. It fetches page content, summarizes it using an AI model, and allows users to select and interact with identified actions (like forms or links) on the page.
+
+### CLI prompt a webpage:
+![Screenshot 2025-06-06 120950](https://github.com/user-attachments/assets/c39722ab-c097-42a5-8fa0-3f653145fd9d)
+
+### Interact with a simple page form:
+![Screenshot 2025-06-06 121008](https://github.com/user-attachments/assets/efc81f9e-7521-4052-b501-f8077677ce1c)
+![Screenshot 2025-06-06 121026](https://github.com/user-attachments/assets/41ae148f-33b2-4ccb-b46e-50f87da9e8f2)
+
 
 ## Project Structure
 
@@ -33,16 +41,13 @@ The project is organized into a modular structure for better maintainability and
 
 3.  **Run the Application:**
     ```bash
-    bun run index.ts <url>
+    npm install
     ```
     Node Example with type stripping attribute:
     ```bash
-    yarn run start https://example.com
+    npm run start https://example.com
     ```
-    Bun Example:
-    ```bash
-    bun run index.ts https://example.com
-    ```
+
 
 ## Features
 
@@ -50,4 +55,4 @@ The project is organized into a modular structure for better maintainability and
 *   **AI Summarization:** Uses a configured AI model (Gemini) to summarize page content concisely.
 *   **Action Identification:** Identifies potential user actions (forms, links) on the page based on AI analysis.
 *   **Interactive CLI:** Provides a user-friendly command-line interface to select and interact with identified page actions.
-*   **Chrome Profile Detection:** Automatically detects common Chrome user profile paths for persistent browser sessions (though currently configured for non-persistent headless mode).
+*   **Chrome Profile Detection:** [WIP] Automatically detects common Chrome user profile paths for persistent browser sessions (though currently configured for non-persistent headless mode).
