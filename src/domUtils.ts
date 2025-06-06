@@ -43,21 +43,21 @@ export function findFormNodeInPage(
     value: string
   ): any | undefined => {
     if (element && element.length > 0 && element.is("form")) {
-      console.log(
-        `[findFormNodeInPage] SUCCESS: Found form via ${method}: "${value}".`
-      );
+      // console.log(
+      //   `[findFormNodeInPage] SUCCESS: Found form via ${method}: "${value}".`
+      // );
       return element.first();
     }
     if (element && element.length > 0) {
-      console.log(
-        `[findFormNodeInPage] Element found via ${method}: "${value}" (tag: ${element.prop(
-          "tagName"
-        )}) is not a form.`
-      );
+      // console.log(
+      //   `[findFormNodeInPage] Element found via ${method}: "${value}" (tag: ${element.prop(
+      //     "tagName"
+      //   )}) is not a form.`
+      // );
     } else {
-      console.log(
-        `[findFormNodeInPage] No element found via ${method}: "${value}".`
-      );
+      // console.log(
+      //   `[findFormNodeInPage] No element found via ${method}: "${value}".`
+      // );
     }
     return undefined;
   };

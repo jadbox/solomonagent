@@ -75,7 +75,15 @@ export async function getPage(url: string) {
 
   console.log(`\nSelected action: ${color.cyan(selectedAction.name)}`);
 
-  if (selectedAction.type === "read") {
+  if (selectedAction.type === "exit") {
+    console.log(
+      color.green(
+        "Exiting as per user request. Thank you for using Solomon's Agent!"
+      )
+    );
+    await closeBrowser();
+    process.exit(0); // Exit gracefully
+  } else if (selectedAction.type === "read") {
     // contentInBodyTag. "content" is full page text while we only want body.
     const body: string =
       content.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || content;

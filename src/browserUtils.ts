@@ -74,9 +74,9 @@ export async function getPageContentAndTitle(url: string) {
           // timeout: 10000, // Increased timeout for launch
         }
       );
-      console.log(
-        "[getPageContentAndTitle] New browser instance launched successfully."
-      );
+      // console.log(
+      //   "[getPageContentAndTitle] New browser instance launched successfully."
+      // );
       browser = regularBrowserInstance; // Get the browser context from the launched persistent context
 
       // browser = await regularBrowserInstance.({
