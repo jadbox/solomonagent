@@ -56,9 +56,9 @@ export async function fillAndSubmitForm(
   let inputSelectorToUse: string;
 
   if (directInputSelector) {
-    console.log(
-      `[fillAndSubmitForm] Using direct input selector provided: "${directInputSelector}"`
-    );
+    // console.log(
+    //   `[fillAndSubmitForm] Using direct input selector provided: "${directInputSelector}"`
+    // );
     inputSelectorToUse = directInputSelector;
   } else {
     // console.log("[fillAndSubmitForm] No direct input selector. Deriving from formCheerioNode.");
@@ -82,9 +82,9 @@ export async function fillAndSubmitForm(
     );
   }
 
-  console.log(
-    `[fillAndSubmitForm] Attempting to fill input "${inputSelectorToUse}" with: "${userInput}"`
-  );
+  // console.log(
+  //   `[fillAndSubmitForm] Attempting to fill input "${inputSelectorToUse}" with: "${userInput}"`
+  // );
   await activePage.locator(inputSelectorToUse).fill(userInput);
   console.log(
     `[fillAndSubmitForm] Filled input field "${inputSelectorToUse}".`

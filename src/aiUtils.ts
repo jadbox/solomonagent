@@ -39,7 +39,9 @@ export async function summarizePage(content: string, originalUrl: string) {
           }
 
           Actions are ordered 1 - 6 top key actions to take from the CLI (ranked from most common to least).
-          Only links and forms that are actionable should be included. Do not include UX actions, i.e. do not add 'close panel' or 'read page'. 
+          Only links and forms that are actionable should be included. 
+          Do not include UX actions, i.e. do not add 'close panel' or 'read page'. 
+          DO NOT include 'read', 'view source', or other non-actionable actions.
           
           If search result or feed page, include the top 3 results as actions with their URLs and label with the full post or link title.
           
