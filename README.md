@@ -2,7 +2,7 @@
 
 ![Screenshot 2025-06-06 124815](https://github.com/user-attachments/assets/51f7b3c7-18c1-4696-b1d5-3a59ed74d8b0)
 
-This project provides a command-line interface (CLI) tool to quickly interact with web from the CLI. It fetches page content, summarizes it using an AI model, and allows users to select and interact with identified actions (like forms or links) on the page.
+This project provides a command-line interface (CLI) tool to quickly interact with web from the CLI. It fetches page content, summarizes it using an AI model, and allows users to select and interact with identified actions (like forms or links) on the page. This tool acts as a smart filter for the web, right in your CLI. It parses a page to surface only the essential content and the most common next steps, streamlining tasks like reading the news, researching on Wikipedia, or getting a quick weather update.
 
 ### CLI prompt a webpage:
 ![Screenshot 2025-06-06 120950](https://github.com/user-attachments/assets/c39722ab-c097-42a5-8fa0-3f653145fd9d)
