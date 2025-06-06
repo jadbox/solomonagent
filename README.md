@@ -1,4 +1,6 @@
-# Solomon's Agent: summerize and interact with the web
+# Solomon's Agent: CLI interaction to a more concise web
+
+![Screenshot 2025-06-06 124815](https://github.com/user-attachments/assets/51f7b3c7-18c1-4696-b1d5-3a59ed74d8b0)
 
 This project provides a command-line interface (CLI) tool to quickly interact with web from the CLI. It fetches page content, summarizes it using an AI model, and allows users to select and interact with identified actions (like forms or links) on the page.
 
