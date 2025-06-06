@@ -56,3 +56,6 @@ The project is organized into a modular structure for better maintainability and
 *   **Action Identification:** Identifies potential user actions (forms, links) on the page based on AI analysis.
 *   **Interactive CLI:** Provides a user-friendly command-line interface to select and interact with identified page actions.
 *   **Chrome Profile Detection:** [WIP] Automatically detects common Chrome user profile paths for persistent browser sessions (though currently configured for non-persistent headless mode).
+
+## Plug
+This is a silly project built while I'm looking for new opportunities around building AI-powered platforms and tools. If you're hiring, message me on https://www.linkedin.com/in/jonathandunlap/
